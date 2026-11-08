@@ -44,15 +44,15 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:col
 .bar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-block:12px}
 .logo{font-family:var(--hand);font-size:2rem;font-weight:700;color:var(--pink);text-decoration:none;line-height:1}
 nav{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
-nav a{text-decoration:none;font-weight:500;font-size:.95rem}
-nav a:hover{color:var(--pink)}
+header nav a{text-decoration:none;font-weight:500;font-size:.95rem}
+header nav a:hover{color:var(--pink)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;cursor:pointer;font:600 .95rem var(--body);text-decoration:none;padding:12px 22px;border-radius:999px;background:var(--pink);color:#fff;transition:transform .15s}
 .btn:hover{transform:translateY(-2px)}
 .btn:disabled{opacity:.5;cursor:default;transform:none}
 .btn.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink)}
 .btn.small{padding:8px 16px;font-size:.88rem}
 nav .btn{padding:8px 16px}
-@media (max-width:620px){nav a:not(.btn){display:none}}
+@media (max-width:620px){header nav a:not(.btn){display:none}}
 
 .hero{display:grid;grid-template-columns:1.05fr 1fr;gap:48px;align-items:center;padding-block:56px 64px}
 .hero > *{min-width:0}
@@ -153,10 +153,20 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--pink)}
 .foot-links{display:flex;flex-wrap:wrap;gap:8px 18px}
 .out .status{margin:12px 0 0}
 footer{padding-block:40px;border-top:1px solid var(--line)}
+section{scroll-margin-top:0px}
+#contact{scroll-margin-top:90px}
+body{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+.float-nav{position:fixed;z-index:15;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));max-width:calc(100% - 24px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px));display:flex;gap:2px;padding:5px;border-radius:999px;background:color-mix(in srgb,var(--ink) 92%,transparent);backdrop-filter:blur(10px);box-shadow:0 12px 30px -12px rgba(29,31,58,.55);overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap;align-items:center;width:max-content}
+.float-nav::-webkit-scrollbar{display:none}
+.float-nav a{flex:0 0 auto;text-decoration:none;color:var(--bg);font:600 .88rem var(--body);padding:9px 14px;border-radius:999px;transition:background .2s,color .2s;white-space:nowrap}
+.float-nav a:hover{background:color-mix(in srgb,var(--bg) 14%,transparent)}
+.float-nav a[aria-current="true"]{background:var(--pink);color:#fff}
+@media (max-width:420px){.float-nav a{padding:9px 10px;font-size:.84rem}}
+body.editing .float-nav{display:none}
 .foot{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:center;color:var(--muted);font-size:.92rem}
 
 /* ---- owner editing ---- */
-.edit-fab{position:fixed;z-index:20;right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));box-shadow:0 10px 30px -10px rgba(29,31,58,.6)}
+.edit-fab{position:fixed;z-index:20;right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(76px + env(safe-area-inset-bottom,0px));box-shadow:0 10px 30px -10px rgba(29,31,58,.6)}
 .editbar{position:fixed;z-index:20;left:0;right:0;bottom:0;background:var(--paper);border-top:2px solid var(--pink);box-shadow:0 -10px 30px -12px rgba(29,31,58,.35);padding-bottom:env(safe-area-inset-bottom,0px)}
 .editbar .wrap{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding-block:12px}
 .editbar .msg{font-size:.9rem;color:var(--muted);flex:1 1 200px;min-width:0}
@@ -338,6 +348,14 @@ body.editing .tools{display:flex}
   </figure>
 </dialog>
 
+<nav class="float-nav" id="floatNav" aria-label="Jump to section">
+  <a href="#cakes">Cakes</a>
+  <a href="#kind-words">Reviews</a>
+  <a href="#flavours">Flavours</a>
+  <a href="#order">Order</a>
+  <a href="#contact">Contact</a>
+</nav>
+
 <button class="btn edit-fab" id="editBtn" type="button" hidden>Edit site</button>
 
 <div class="editbar" id="editbar" hidden>
@@ -434,6 +452,7 @@ function render(){
   const n = dirty();
   $('saveBtn').disabled = !n;
   $('discardBtn').disabled = !n;
+  setActive();
   if (editing && !saving) $('editMsg').innerHTML = n ? '<b>You have unsaved changes.</b> Press Save to put them on the website.' : 'Use the buttons on each photo or quote to move or remove it.';
 }
 let saving = false;
@@ -457,6 +476,29 @@ function openDlg(d){ try { d.showModal(); } catch (err) { d.setAttribute('open',
 $('lbClose').onclick = () => $('lb').close();
 $('lb').addEventListener('click', e => { if (e.target === $('lb')) $('lb').close(); });
 document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
+
+/* ---- floating section menu ---- */
+const navLinks = [...document.querySelectorAll('#floatNav a, header nav a')];
+const fLinks = [...document.querySelectorAll('#floatNav a')];
+const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+navLinks.forEach(a => a.addEventListener('click', e => {
+  const t = document.querySelector(a.getAttribute('href')); if (!t) return;
+  e.preventDefault(); t.scrollIntoView({behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start'});
+}));
+let navTick = false;
+function setActive(){
+  navTick = false;
+  const line = innerHeight * 0.35; let cur = -1;
+  fLinks.forEach((a, i) => {
+    const t = document.querySelector(a.getAttribute('href'));
+    a.hidden = !t || !!t.closest('[hidden]');
+    if (t && !a.hidden && t.getBoundingClientRect().top <= line) cur = i;
+  });
+  fLinks.forEach((a, i) => a.setAttribute('aria-current', i === cur ? 'true' : 'false'));
+  const on = fLinks[cur]; if (on) { const n = $('floatNav'); const l = on.offsetLeft, r = l + on.offsetWidth; if (l < n.scrollLeft || r > n.scrollLeft + n.clientWidth) n.scrollLeft = l - 8; }
+}
+addEventListener('scroll', () => { if (!navTick) { navTick = true; requestAnimationFrame(setActive); } }, {passive: true});
+addEventListener('resize', setActive);
 
 /* ---- order form ---- */
 $('f').addEventListener('submit', e => {
